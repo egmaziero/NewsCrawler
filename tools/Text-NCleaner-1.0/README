@@ -1,0 +1,80 @@
+
+	Text::NCleaner
+
+NCleaner is a software tool for cleaning up Web pages by removing boilerplate
+and other unwanted material, especially for linguistic purposes (the "Web as
+Corpus").  It uses simple character-level n-gram models for the automatic
+classification of text segments.  Since it operates on plain text only and
+does not make use of structural information, it can be applied both to HTML
+files and to text dumps of Web pages.
+
+NCleaner participated in the first CleanEval competition (under its former
+name "StupidOS"), where its text cleaning accuracy was close to the best
+contestants [see http://webascorpus.sf.net/CLEANEVAL/].  A detailed
+description of NCleaner can be found in
+
+  Evert, Stefan (2008). A lightweight and efficient tool for cleaning
+    Web pages. In Proceedings of the 6th International Conference on
+    Language Resources and Evaluation (LREC 2008).
+	
+The NCleaner distribution includes two pre-trained models for English Web
+pages.  New models can easily be estimated from manually cleaned text dumps.
+
+
+PREREQUISITES
+
+NCleaner depends on Lynx, a text-mode Web browser, for converting HTML pages
+to plain text.  It also uses a number of other Perl modules.  The complete
+list of prerequisites is as follows:
+
+    lynx  --  command-line program must be available in search path
+
+    Test::More
+    Data::Dumper
+    Inline::C  --  strongly recommended for much faster processing
+
+If prerequisites are missing, warnings will be displayed during the
+installation procedure.
+
+If the fast Inline::C implementation is available, every user of NCleaner
+should create a cache directory
+
+	~/.Inline/
+
+in his or her home directory.  Otherwise Inline::C will create temporary cache 
+directories (named "_Inline/") wherever the program is run, and will have
+to recompile the C code much more often.
+
+
+INSTALLATION
+
+To install this module, run the following commands:
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+
+SUPPORT AND DOCUMENTATION
+
+After installing, you can find documentation for the NCleaner API
+and command-line programs with the perldoc command.
+
+    perldoc Text::NCleaner  --  programmer API to NCleaner
+    perldoc ncleaner        --  NCleaner command-line program
+    perldoc train-ncleaner  --  estimate new n-gram models
+
+For further information, bug reports and new versions, check out the
+NCleaner homepage on
+
+	http://webascorpus.sf.net/
+
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2008 Stefan Evert
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+

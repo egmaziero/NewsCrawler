@@ -1,0 +1,184 @@
+Revision history for Perl extension Inline::C.
+
+0.50 Tues 7 Feb 2012
+      Version 0.50 released to CPAN
+      C.pm - Bump version number to 0.50
+
+0.49_02 Fri 3 Feb 2012
+      Version 0.49_02 released to CPAN
+      C.pm - Bring version numbering into line with recommendations made in
+             http://perldoc.perl.org/perlmodstyle.html#Version-numbering
+
+0.49_01 Thurs 02 Feb 2012
+     Version 0.49_01 released to CPAN.
+
+0.49_01 Sun 25 Dec 2011
+     C.pm - Bump version to 0.49_01
+     C.pod - Fix typo. (Ticket 73108)
+
+0.49 Thurs 8 Dec 2011
+     Version 0.49 released to CPAN. (No changes from 0.48_02).
+
+0.48_02 Mon 5 Dec 2011
+     Version 0.48_02 released to CPAN.
+
+0.48_02 Fri 9 Sep 2011
+     - Bump Inline::C version to 0.48_02
+     - Make a correction and provide some elaboration in the 'Discussion'
+       relating to 'Object Oriented Inline' in C-Cookbook.pod.
+
+0.48_02 Thurs 25 Aug 2011
+     Add example for accessing fortran code to C-Cookbook.
+
+0.48_01 Mon 11 Apr 2011
+      Version 0.48_01 released to CPAN.
+      - C/C.pm: [cpan #67053] Space in pwd. Patch from Reini Urban to work with
+        spaces in the current dir.
+
+0.48 Mon 21 Feb 2011
+     Version 0.48 released to CPAN. (No changes from 0.47_02.)
+
+0.47_02 Tues 1 Feb 2011
+     Version 0.47_02 released to CPAN.
+      - Change the Test::Warn dependency from 0.22 to 0.21 and
+        specify it in top-level Makefile.PL instead of in C/Makefile.PL.
+
+0.47_01 Sun 30 January 2011
+     Version 0.47_01 released to CPAN.
+      - Use Test::Warn (on perl-5.8 and later) to check and suppress the
+        warnings produced by C/t/08taint.t during 'make test'. (Ticket #54825.)
+
+0.47 Fri 21 January 2011
+     Version 0.47 released to CPAN. No changes from 0.46_02
+
+0.46_02 Sat 18 Dec 2010
+      - Makefile.PL: insert 'return 1 if -e $_[0];' at beginning of
+        find_executable() subroutine. (RT ticket 61218)
+
+0.46_02 Sat 17 Apr 2010
+      - C-Cookbook.pod: Fix callback example. (RT ticket 56652)
+
+0.46_01 Wed 31 Mar 2010 (and released to CPAN as 0.46_01)
+      - C.pm: local()ise $_ in get_types(). (RT ticket 55607)
+      - C.pm: introduce capability to check that xs_bindings() is
+         working as expected. (Prompted by RT ticket 55543)
+      - C.pm: add _testing_cleanup() to facilitate cleaning up of
+         files created by setting the _TESTING config option
+      - t/08taint.t: Warn the user to expect "Blindly untainting ..."
+         warnings
+      - t/09parser.t: Make use of Inline::C::_testing_cleanup()
+      - add t/10callback.t (mainly in response to RT ticket 55543) and
+         t/11default_readonly.t (in response to RT ticket 55607).
+
+0.46_01 Mon 8 Mar 2010
+      - Add sub _parser_test() to C.pm (enables us to check which parser is in
+        use).
+      - Add tests (C/t/09parser.t) to check that the expected parser is being
+        used - makes use of '_TESTING' config option. (Involves minor changes
+        to lib/Inline/C/ParseRecDescent.pm and lib/Inline/C/ParseRegExp.pm).
+
+0.46_01 Sun 14 Feb 2010
+      - Second attempt at accommodating 'ccache cc' compiler (RT ticket 40140)
+
+0.46 Fri 12 Feb 2010
+      - Same as 0.45_02.
+
+0.45_02 Fri 5 Feb 2010
+      - Add C/t/08taint.t as part of RT ticket 13084 fix. See top level
+        "Changes" file.
+
+0.45_01 Thurs 28 Jan 2010
+      - Fix Rt tickets 40140, 45417 and 49419. See top level "Changes" file.
+
+0.45  Sat Nov 22 2008
+      - No changes from 0.44_01
+
+0.44_01 Tues Oct 11 2008
+      - In C/C.pm, allow for the calling of multiple typemaps (RT ticket 5639),
+        and have the "No Inline C functions bound to Perl" warning specify the
+        file for which no bindings were found (RT ticket 17774).
+
+0.43  Sun Jul 22 08:15:26 PDT 2001
+	- Auto add script directory to INC path (-I)..
+
+0.43  Sat Jul 21 12:38:37 PDT 2001
+	- Added support for XSMODE.
+
+0.43  Fri Jul 20 03:29:08 PDT 2001
+	- Added OPTIMIZE config parameter for gdb debugging
+
+0.43  Thu Jul 19 17:29:17 PDT 2001
+	- Use $Config{dlext} instead of $Config{so}
+
+0.43  Sat Jul  7 13:18:36 PDT 2001
+	- Move the creation of a parser from parse() to get_parser(). This
+	  allows Inline::CPP to override only get_parser(). (NEILW)
+
+0.43  Sat Jul  7 12:53:33 PDT 2001
+	- Break up the generation of XS code into smaller stages which can
+	  be overridden in Inline::CPP. Makes the code somewhat longer, but
+	  more clear. (NEILW)
+
+0.42  Sun Jun 10 23:50:27 PDT 2001
+	- Patch that fixes STRUCTS config option being used for explicit
+	  structs.
+
+0.42  Sun Jun 10 18:34:36 PDT 2001
+	- Patch that prevents Inline from creating a nonexistent sitelib
+	  Thanks Joey Hess.
+
+0.41  Tue Jun  5 01:49:32 PDT 2001
+	- Added AUTOWRAP config option
+
+0.40  Sat May 26 13:47:16 PDT 2001
+	- Added hack to make work with Inline::Files and +w
+
+0.40  Wed May 23 20:21:32 PDT 2001
+	- 0.40 integration
+	  Changed object references
+	  Account for no trailing '/' in paths
+
+0.34  Sun May  6 16:56:53 PDT 2001
+	- Changed the generated Makefile.PL to not create any dependencies
+	  between Makefile and Makefile.PL. This was creating a problem on
+	  an HP-UX system using AFS. Inline users should never need this
+	  dependency anyways.
+
+0.34  Tue May  1 00:05:58 PDT 2001
+	- Fixed compiler detection bugs in Makefile.PL
+
+0.33  Sat Apr 28 20:20:29 PDT 2001
+	- Made Inline::C a base class for Inline::CPP
+
+0.33  Sat Apr 28 20:20:29 PDT 2001
+	- Added support for Inline::Filters. FILTERS config option.
+
+0.33  Sat Apr 28 20:20:29 PDT 2001
+	- Made installation of Inline::C optional. For those people without
+	  a C compiler who may wish to use Java.
+
+0.33  Sat Apr 28 20:20:29 PDT 2001
+	- Rearranged test harness. Moved all C tests from Inline to Inline::C
+
+0.32  Mon Feb 26 15:36:56 PST 2001
+	- Added MAKE config option
+	- Changed LDFLAGS to proper name LDDLFLAGS. (MakeMaker)
+
+0.32  Fri Feb 23 03:17:42 PST 2001
+	- Fixed Debian bug with $Config{installprivlib}. Also added warning if no default typemap, and croak if no typemaps at all.
+
+0.32  Fri Feb 23 03:16:27 PST 2001
+	- Special case for AIX ($Config{so})
+
+0.31  Thu Jan 18 22:02:17 PST 2001
+	- Added the following configuration options: 'CC', 'LD', 'CCFLAGS, 'LDFLAGS'. These are proxies for the MakeMaker options of the same names.
+
+0.31  Sat Jan 13 14:44:28 PST 2001
+	- Allow relative paths in TYPEMAPS files.
+	- Added a test 't/typemap.t' for this
+
+0.31  Sat Jan 13 12:41:38 PST 2001
+	- Changed over to new Inline DIRECTORY structure.
+
+0.30  Fri Dec  8 01:55:43 PST 2000
+	- Created Inline::C. Separated C code from Inline 0.26

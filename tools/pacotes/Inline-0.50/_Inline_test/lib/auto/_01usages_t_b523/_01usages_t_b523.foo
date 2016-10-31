@@ -1,0 +1,3 @@
+sub test5 {
+    return $_[0] eq 'test5';
+}

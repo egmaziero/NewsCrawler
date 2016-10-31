@@ -1,0 +1,5 @@
+# Inline Foo file
+
+sub test1 {
+    return $_[0] eq 'test1';
+}

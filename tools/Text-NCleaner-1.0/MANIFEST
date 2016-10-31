@@ -1,0 +1,15 @@
+bin/ncleaner
+bin/train-ncleaner
+Changes
+lib/Text/NCleaner.pm
+lib/Text/NCleaner/Models/EnglishNonlex.pm
+lib/Text/NCleaner/Models/EnglishStandard.pm
+lib/Text/NCleaner/NGram.pm
+lib/Text/NCleaner/NGramC.pm
+lib/Text/NCleaner/Segmenter.pm
+Makefile.PL
+MANIFEST
+README
+t/00-load.t
+t/01-pod.t
+t/02-pod-coverage.t

@@ -1,0 +1,271 @@
+#!/usr/bin/perl
+# -*-cperl-*-
+
+use strict;
+use warnings;
+
+=head1 NAME
+
+train-ncleaner - Estimate NCleaner model from manually cleaned data
+
+=cut
+
+use FileHandle;
+use File::Basename;
+use Getopt::Long;
+use Pod::Usage;
+use Text::NCleaner;
+
+=head1 SYNOPSIS
+
+  train-ncleaner [options] clean_texts/ dirty_texts/ new.model
+
+  train-ncleaner --diff [options] clean_texts/ raw_texts/ new.model
+
+  Options:
+    -n <n>   order of n-gram models used for classification
+    -m <k>   text normalisation mode (0 .. 3)
+    -q <q>   default interpolation factor for n-gram models 
+             (between 0 and 1, larger values increase smoothing)
+    -b <b>   model bias (towards higher recall) in centibits
+    -v       display some progress messages
+
+  Default options: -n 3 -m 1 -q .5 -b 0
+
+  Type 'perldoc train-ncleaner' for more information.
+
+=cut
+
+our $N = 3;
+our $Q = .5;
+our $Bias = 0;
+our $Mode = 1;
+our $Verbose = 0;
+our $Help = 0;
+our $Diff = 0;
+
+my $ok = GetOptions("differential|diff|d" => \$Diff,
+		    "n=i" => \$N,
+		    "q=f" => \$Q,
+		    "b|bias=f" => \$Bias,
+		    "m|mode=i" => \$Mode,
+		    "v|verbose" => \$Verbose,
+		    "help|h" => \$Help);
+
+if (@ARGV != 3 or $Help or not $ok) {
+  pod2usage(-msg => "==== train-ncleaner (NCleaner version $Text::NCleaner::VERSION) ====",
+	    -verbose => 0,
+	    -exitval => 2);
+}
+
+our ($CleanDir, $DirtyOrRawDir, $ModelFile) = @ARGV;
+$CleanDir =~ s{/*$}{};
+$DirtyOrRawDir =~ s{/*$}{};
+
+=head1 DESCRIPTION
+
+The B<NCleaner> is a software tool that removes boilerplate and other unwanted
+material from Web pages used for linguistic purposes.  It relies on simple
+character-level n-gram models for classification of text segments.  A detailed
+description can be found in
+
+=over 4
+
+=item *
+
+Evert, Stefan (2008). A lightweight and efficient tool for cleaning Web
+pages. In I<Proceedings of the 6th International Conference on Language
+Resources and Evaluation> (LREC 2008).
+
+=back
+
+The command-line program B<train-ncleaner> can be used to estimated a
+B<NCleaner> model from a manually cleaned gold standard.  It can either be
+applied to separate sets of "clean" and "dirty" text, or to raw text dumps of
+HTML pages and their manually cleaned versions (using differential training).
+
+=head1 ARGUMENTS
+
+  train-ncleaner [options] clean_texts/ dirty_texts/ new.model
+
+For B<normal training>, a directory containing samples of "clean" text and a
+directory containing samples of "dirty" text have to be supplied, which must
+be plain text files in UTF-8 encoding. Since all files in these directories
+will be used, make sure to remove any extra files beforehand.  The trained
+model will be saved under the name specified as third argument.
+
+  train-ncleaner --diff [options] clean_texts/ raw_texts/ new.model
+
+For B<differential training>, raw text dumps and their manually cleaned
+versions have to be supplied (in the two specified directories).  Only files
+with identical names in both directories will be used.  As above, all samples
+must be plain text files in UTF-8 encoding.  The trained model will be saved
+under the name specified as third argument.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--differential>, B<--diff>, B<-d>
+
+Apply differential training procedure (see above).
+
+=item B<-n> I<N>
+
+Order of n-gram models that will be trained (allowing history sizes of up to
+I<N>-1 characters).  The default value is C<-n 3>.
+
+=item B<--mode> I<M>, B<-m> I<M>
+
+Text normalisation mode I<M>.  Numeric values between 0 and 3 specifiy
+increasingly heavy normalisation, with a default value of C<-m 1>.
+
+    0 = minimal normalisation (only whitespace and control characters)
+    1 = map all high-bit characters (outside ASCII range) to "~"
+    2 = map ASCII letters to "a" for vowels and "t" for consonants, digits to "0"
+    3 = non-lexical model, maps all ASCII letters to "a" and all digits to "0"
+
+=item B<-q> I<Q>
+
+Default interpolation factor I<Q> for the n-gram models, which must be a
+number between 0 and 1.  Values close to 1 lead to very strong smoothing,
+while values close to 0 result in minimal smoothing.  See
+L<Text::NCleaner::NGram> and Evert (2008) for details on the interpolation
+algorithm.
+
+=item B<--bias> I<b>, B<-b> I<b>
+
+Model bias I<b> given in centibits, which is added to the cross-entropy of the
+"clean" model to control the tradeoff between recall and precision.  Positive
+values lead to higher recall, while negative values increase precision.
+Sensible values are typically found in the range between -100 and 100.
+
+=item B<--verbose>, B<-h>
+
+Display some progress messages and other information during training.
+
+=back
+
+=cut
+
+print "NCleaner v$Text::NCleaner::VERSION -- (C) 2008 by Stefan Evert\n"
+  if $Verbose;
+
+our @CleanFiles = sort map { basename($_) } glob "$CleanDir/*";
+our @DirtyOrRawFiles = sort map { basename($_) } glob "$DirtyOrRawDir/*";
+
+if ($Diff) {
+  my $clean_only = list_difference(\@CleanFiles, \@DirtyOrRawFiles);
+  my $raw_only = list_difference(\@DirtyOrRawFiles, \@CleanFiles);
+  @CleanFiles = list_intersection(\@CleanFiles, \@DirtyOrRawFiles);
+  @DirtyOrRawFiles = @CleanFiles;
+  if ($Verbose) {
+    printf " - found %d samples for differential training\n", 0+@CleanFiles;
+    printf "    + %d samples without cleaned version ignored\n", $raw_only
+      if $raw_only > 0;
+    printf "    + %d cleaned samples without raw text dumps ignored\n", $clean_only
+      if $clean_only > 0;
+  }
+  die "No usable files found for differential training. Aborted.\n"
+    unless @CleanFiles > 0;
+}
+else {
+  printf " - found %d clean samples and %d dirty samples\n", 0+@CleanFiles, 0+@DirtyOrRawFiles
+    if $Verbose;
+  die "No samples of 'clean' text found. Aborted\n"
+    unless @CleanFiles > 0;
+  die "No samples of 'dirty' text found. Aborted\n"
+    unless @DirtyOrRawFiles > 0;
+}
+
+our @CleanTexts = map { slurp_file("$CleanDir/$_") } @CleanFiles;
+our @DirtyOrRawTexts = map { slurp_file("$DirtyOrRawDir/$_") } @DirtyOrRawFiles;
+
+if ($Verbose) {
+  my $clean_size = sum( map { length($_) } @CleanTexts );
+  my $dirty_size = sum( map { length($_) } @DirtyOrRawTexts );
+  if ($Diff) {
+    printf " - differential training on %.1fK chars of clean data out of %.1fK chars\n",
+      $clean_size / 1024, $dirty_size / 1024;
+  }
+  else {
+    printf " - training on %.1fK chars of clean and %.1fK chars of dirty data\n",
+      $clean_size / 1024, $dirty_size / 1024;
+  }
+}
+
+printf " - training parameters: n = %d, mode %d, q = %.4f, bias = %.1f cbits\n",
+  $N, $Mode, $Q, $Bias * 100
+  if $Verbose;
+
+our $cleaner = new Text::NCleaner;
+$cleaner->debug(0);
+
+if ($Diff) {
+  $cleaner->diff_train("@CleanTexts", "@DirtyOrRawTexts", $N, $Mode, $Q);
+}
+else {
+  $cleaner->train("@CleanTexts", "@DirtyOrRawTexts", $N, $Mode, $Q);
+}
+$cleaner->set_bias($Bias);
+
+printf " - saving trained NCleaner model to file '$ModelFile'\n"
+  if $Verbose;
+$cleaner->save($ModelFile);
+
+print "Training complete.\n"
+  if $Verbose;
+
+
+##
+## Internal subroutines
+##
+
+## read entire file into string (so we don't depend on File::Slurp)
+##   $string = slurp_file($filename);
+sub slurp_file {
+  my $filename = shift;
+  local($/) = undef;
+  my $fh = new FileHandle $filename
+    or die "Can't read file '$filename'. Aborted.\n";
+  my $content = <$fh>;
+  $fh->close;
+  return $content;
+}
+
+## intersection of two lists
+##   @intersection = list_intersection(\@list1, \@list2);
+sub list_intersection {
+  my ($list1, $list2) = @_;
+  my %in_list2 = map {$_ => 1} @$list2;
+  return grep { $in_list2{$_} } @$list1;
+}
+
+## difference of two lists (subtract elements in @list2 from @list1)
+##   @difference = list_difference(\@list1, \@list2);
+sub list_difference {
+  my ($list1, $list2) = @_;
+  my %in_list2 = map {$_ => 1} @$list2;
+  return grep { not $in_list2{$_} } @$list1;
+}
+
+## sum elements of list
+##   $total = sum(@list);
+sub sum {
+  my $total = 0;
+  foreach (@_) { $total += $_ }
+  return $total;
+}
+
+=head1 AUTHOR
+
+Stefan Evert, C<< <stefan.evert@uos.de> >>
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2008 Stefan Evert, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut

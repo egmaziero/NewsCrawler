@@ -1,0 +1,25 @@
+---
+abstract: unknown
+author:
+  - unknown
+build_requires:
+  ExtUtils::MakeMaker: '0'
+configure_requires:
+  ExtUtils::MakeMaker: '0'
+dynamic_config: 0
+generated_by: 'ExtUtils::MakeMaker version 6.56, CPAN::Meta::Converter version 2.120351'
+license: unknown
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Data-Dumper
+no_index:
+  directory:
+    - t
+    - inc
+requires: {}
+resources:
+  bugtracker: http://rt.perl.org/perlbug/
+  repository: 'git://perl5.git.perl.org/perl.git perl-git'
+  x_MailingList: http://lists.cpan.org/showlist.cgi?name=perl5-porters
+version: '2.131'

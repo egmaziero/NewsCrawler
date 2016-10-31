@@ -1,0 +1,245 @@
+#!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+# -*-cperl-*-
+
+use strict;
+use warnings;
+$| = 1;
+
+=head1 NAME
+
+ncleaner - Clean Web pages with NCleaner model (n-gram classifiers)
+
+=cut
+
+use FileHandle;
+use File::Basename;
+use Getopt::Long;
+use Pod::Usage;
+use Text::NCleaner;
+use Text::NCleaner::Segmenter;
+
+=head1 SYNOPSIS
+
+  ncleaner [options] orig_pages/ cleaned_texts/
+
+  Options:
+    -nl      use non-lexical default model
+    -m <f>   load trained NCleaner model from file <f>
+    -n <n>   order of n-gram models (reduce only)
+    -q <q>   interpolation factor for n-gram models
+             (between 0 and 1, larger values increase smoothing)
+    -b <b>   model bias (towards higher recall) in centibits
+    -v       display progress information
+
+  By default, a standard model included in the NCleaner distribution
+  is used.  Type 'perldoc train-ncleaner' for more information.
+
+=cut
+
+our $NonLex = 0;
+our $ModelFile = undef;
+our $N = undef;
+our $Q = undef;
+our $Bias = undef;
+our $Verbose = 0;
+our $Help = 0;
+
+my $ok = GetOptions("nonlex|nl" => \$NonLex,
+		    "model|m=s" => \$ModelFile,
+		    "n=i" => \$N,
+		    "q=f" => \$Q,
+		    "b|bias=f" => \$Bias,
+		    "v|verbose" => \$Verbose,
+		    "help|h" => \$Help);
+
+if (@ARGV != 2 or $Help or not $ok) {
+  pod2usage(-msg => "==== ncleaner (NCleaner version $Text::NCleaner::VERSION) ====",
+	    -verbose => 0,
+	    -exitval => 2);
+}
+
+our ($OrigDir, $OutputDir) = @ARGV;
+$OrigDir =~ s{/*$}{};
+$OutputDir =~ s{/*$}{};
+
+die "Option --nonlex (-nl) cannot be combined with user-specified model (--model, -m).\n"
+  if $NonLex and $ModelFile;
+
+if ($ModelFile) {
+  die "Specified model '$ModelFile' does not exist.\n"
+    unless -f $ModelFile;
+}
+else {
+  $ModelFile = ($NonLex) ? "Text/NCleaner/Models/EnglishNonlex.pm" : "Text/NCleaner/Models/EnglishStandard.pm";
+}
+
+
+=head1 DESCRIPTION
+
+The B<NCleaner> is a software tool that removes boilerplate and other unwanted
+material from Web pages used for linguistic purposes.  It relies on simple
+character-level n-gram models for classification of text segments.  A detailed
+description can be found in
+
+=over 4
+
+=item *
+
+Evert, Stefan (2008). A lightweight and efficient tool for cleaning Web
+pages. In I<Proceedings of the 6th International Conference on Language
+Resources and Evaluation> (LREC 2008).
+
+=back
+
+The command-line program B<ncleaner> is used to clean up Web pages using
+a previously trained B<NCleaner> model.  A standard model for English is
+included in the B<NCleaner> distribution and is used by default.  New models
+can be estimated with the B<train-ncleaner> program.
+
+=head1 ARGUMENTS
+
+  ncleaner [options] orig_pages/ cleaned_texts/
+
+The first command-line argument is a directory containing HTML pages and/or
+text dumps of Web pages.  B<ncleaner> processes all files in this directory,
+autodetecting HTML pages based on filename extensions (C<.html>, C<.xhtml> or
+C<.htm>).  The cleaned texts are saved to the output directory as files with
+the same basename and the extension C<.txt>.  They are segmented into
+paragraphs separated by blank lines and marked with an initial tag C<< <p> >>
+(normal text paragraph), C<< <h> >> (heading) or C<< <l> >> (list item).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--model> I<file>, B<-m> I<file>
+
+Load pre-trained B<NCleaner> model from I<file>.  By default, a standard model
+for English included in the distribution is used.
+
+=item B<--nonlex>, B<-nl>
+
+Use non-lexical version of the standard model, which might generalise better
+to other European languages than the default model.
+
+=item B<-n> I<N>
+
+Select order of n-gram models (may not be larger than value used in training).
+
+=item B<-q> I<Q>
+
+Interpolation factor I<Q> for the n-gram models, which must be a number
+between 0 and 1.  Values close to 1 lead to very strong smoothing, while
+values close to 0 result in minimal smoothing.  See L<Text::NCleaner::NGram>
+and Evert (2008) for details on the interpolation algorithm.
+
+=item B<--bias> I<b>, B<-b> I<b>
+
+Model bias I<b> in centibits, which can be used to control the tradeoff
+between recall and precision.  Positive values lead to higher recall, while
+negative values increase precision.  Sensible values are typically found in
+the range between -100 and 100.
+
+=item B<--verbose>, B<-h>
+
+Display some progress information.
+
+=back
+
+=cut
+
+print "NCleaner v$Text::NCleaner::VERSION -- (C) 2008 by Stefan Evert\n";
+
+print "Loading model ... "
+  if $Verbose;
+our $cleaner = new Text::NCleaner $ModelFile;
+$cleaner->set_n($N)
+  if defined $N;
+$cleaner->set_q($Q)
+  if defined $Q;
+$cleaner->set_bias($Bias / 100)
+  if defined $Bias;
+print "ok\n"
+  if $Verbose;
+
+our @OrigPages = sort map { basename($_) } glob "$OrigDir/*";
+our $n_pages = @OrigPages;
+
+die "No input files found -- stopped.\n"
+  unless @OrigPages;
+print "Cleaning: $OrigDir/ => $OutputDir/\n"
+  if $Verbose;
+
+my $count = 0;
+my $total_clean = 0;
+my $total_orig = 0;
+my $total_conf = 0;
+foreach my $file (@OrigPages) {
+  my $basename = $file;
+  $basename =~ s/\.(x?html|htm|te?xt)$//; # strip known suffixes
+
+  my $text = new Text::NCleaner::Segmenter "$OrigDir/$file";
+
+  my $fh = new FileHandle "> $OutputDir/$basename.txt"
+    or die "Can't create file '$OutputDir/$basename.txt: $!";
+
+  my $file_conf = 0;  # average confidence = difference between clean/dirty cross-entropy
+  my $file_clean = 0; # number of clean characters in this file
+  my $file_orig = 0;  # total number of characters in this file
+  while (my $par = $text->get_segment) {
+    my ($is_clean, $signed_conf) = $cleaner->check($par);
+    my $l_par = length($par);
+    $file_orig += $l_par;
+    if ($is_clean) {
+      print $fh $par, "\n\n";
+      $file_clean += $l_par;
+    }
+    $file_conf += $l_par * abs($signed_conf);
+  }
+  $fh->close;
+  $count++;
+
+  if ($Verbose) {
+    printf "%6d of %d:%8.1fK clean (%4.1f%s)  conf =%5.2f bits        \r",
+      $count, $n_pages, $file_clean / 1024, 100 * $file_clean / $file_orig, '%', $file_conf / $file_orig;
+  }
+
+  $total_clean += $file_clean;
+  $total_orig += $file_orig;
+  $total_conf += $file_conf;
+}
+print " " x 70, "\r"
+  if $Verbose;
+
+printf "%d files, %.2fM of %.2fM chars clean (%.1f%s), avg. confidence %.2f bits\n",
+    $n_pages, $total_clean / 1048576, $total_orig / 1048576, 100 * $total_clean / $total_orig, '%', $total_conf / $total_orig;
+
+
+##
+## Internal subroutines
+##
+
+## sum elements of list
+##   $total = sum(@list);
+sub sum {
+  my $total = 0;
+  foreach (@_) { $total += $_ }
+  return $total;
+}
+
+
+=head1 AUTHOR
+
+Stefan Evert, C<< <stefan.evert@uos.de> >>
+
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2008 Stefan Evert, all rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
